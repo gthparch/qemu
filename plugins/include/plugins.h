@@ -18,8 +18,12 @@ void mem_cb(int c, uint64_t v, uint64_t p, int size, int w);
 void qemulib_log(const char *fmt, ...) /*GCC_FMT_ATTR(1, 2)*/;
 uint64_t qemulib_memory_translate(void *cpu, uint64_t addr);
 int qemulib_read_memory(void *cpu, uint64_t addr, uint8_t *buf, int len);
+int qemulib_write_memory(void *cpu, uint64_t addr, uint8_t *buf, int len);
 int qemulib_read_register(void *cpu, uint8_t *mem_buf, int reg);
+int qemulib_write_register(void *cpu, uint8_t *mem_buf, int reg);
 uint64_t qemulib_translate_memory(void *cpu, uint64_t addr);
 int qemulib_get_cpuid(void *cpu);
+CPUState* getCPUStateFromId(int id);
+
 
 #endif /* PLUGINS_INTERFACE_H */

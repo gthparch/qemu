@@ -12,16 +12,35 @@
 #include "../../../qsim-context.h"
 
 // remaining set of function definitions needed
-int interrupt(uint8_t vec) {return 0;}
-uint64_t get_reg(int cpu_idx, int r) {return 0; }
-void set_reg(int cpu_idx, int r, uint64_t val) {}
-uint8_t mem_rd(uint64_t paddr){return 0; }
-void mem_wr(uint64_t paddr, uint8_t val) {}
+int interrupt(uint8_t vec);
+
+uint64_t get_reg(int cpu_idx, int r) {
+    void * cpu = getCPUStateFromId(cpu_idx);
+    uint32_t reg;
+    qemulib_read_register(cpu, (uint8_t*)&reg, r);
+    return reg;
+}
+void set_reg(int cpu_idx, int r, uint64_t val) {
+    void* cpu = getCPUStateFromId(cpu_idx);
+    qemulib_write_register(cpu, &val, r);
+}
+
+uint8_t mem_rd(uint64_t paddr) {
+    void *cpu = NULL;
+    qemulib_translate_memory(cpu, paddr); 
+}
+void mem_wr(uint64_t paddr, uint8_t val) {
+    void *cpu = NULL;
+    qemulib_write_memory(cpu, paddr, uint8_t *buf, int len)
+
+}
+
 uint8_t mem_rd_virt(int cpu_idx, uint64_t vaddr) {return 0; }
 void mem_wr_virt(int cpu_idx, uint64_t vaddr, uint8_t val);
 void qsim_savevm_state(const char *filename) {}
 int qsim_loadvm_state(const char *filename) {return 0; }
 
+interupt_cb_t qsim_interupt_cb = NULL;
 atomic_cb_t qsim_atomic_cb = NULL;
 magic_cb_t  qsim_magic_cb  = NULL;
 int_cb_t    qsim_int_cb    = NULL;
@@ -51,6 +70,8 @@ void set_magic_cb (magic_cb_t  cb) { qsim_magic_cb  = cb; }
 void set_io_cb    (io_cb_t     cb) { qsim_io_cb     = cb; }
 void set_reg_cb   (reg_cb_t    cb) { qsim_reg_cb    = cb; }
 void set_trans_cb (trans_cb_t cb) { qsim_trans_cb = cb; }
+void set_interupt_cb(interupt_cb_t cb) { qsim_interupt_cb = cb;}
+
 
 void set_gen_cbs (bool state)
 {

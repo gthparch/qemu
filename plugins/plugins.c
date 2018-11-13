@@ -14,6 +14,7 @@ typedef bool (*PluginInitFunc)(const char *);
 typedef bool (*PluginNeedsBeforeInsnFunc)(uint64_t, void *);
 typedef void (*PluginBeforeInsnFunc)(uint64_t, void *);
 typedef void (*PluginAfterMemFunc)(void *, uint64_t, int, int);
+typedef void (*PluginBeeforeInterupt)(void *, uint64_t);
 
 typedef struct QemuPluginInfo {
     const char *filename;

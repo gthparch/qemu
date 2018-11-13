@@ -24,6 +24,11 @@ int qemulib_read_memory(void *cpu, uint64_t addr, uint8_t *buf, int len)
     return cpu_memory_rw_debug(cpu, addr, buf, len, false);
 }
 
+int qemulib_write_memory(void *cpu, uint64_t addr, uint8_t *buf, int len)
+{
+    return cpu_memory_rw_debug(cpu, addr, buf, len, true);
+}
+
 int qemulib_read_register(void *cpu, uint8_t *mem_buf, int reg)
 {
     CPUClass *cc = CPU_GET_CLASS(cpu);
@@ -35,9 +40,31 @@ int qemulib_read_register(void *cpu, uint8_t *mem_buf, int reg)
     return 0;
 }
 
+int qemulib_write_register(void* cpu, uint8_t *mem_buf, int reg) {
+    CPUClass *cc = CPU_GET_CLASS(cpu);
+    if (reg < cc->gdb_num_core_regs) {
+        return gdb_write_register(cpu, mem_buf, reg);
+    }
+
+    return 0;
+}
+
 int qemulib_get_cpuid(void *cpu)
 {
     CPUState *cs = CPU(cpu);
 
     return cs ? cs->cpu_index : -1;
+}
+
+CPUState* getCPUStateFromId(int id) {
+    CPUState *cpu;
+    int currId;
+
+    CPU_FOREACH(cpu) {
+        currId = cpu_index(cpu);
+        if(currId == id) {
+            return cpu;
+        }
+    }
+    return NULL;
 }
