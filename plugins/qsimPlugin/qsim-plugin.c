@@ -29,10 +29,10 @@ uint8_t mem_rd(uint64_t paddr) {
     void *cpu = NULL;
     qemulib_translate_memory(cpu, paddr); 
 }
+
 void mem_wr(uint64_t paddr, uint8_t val) {
     void *cpu = NULL;
-    qemulib_write_memory(cpu, paddr, uint8_t *buf, int len)
-
+    qemulib_write_memory(cpu, paddr, &val,sizeof(val));
 }
 
 uint8_t mem_rd_virt(int cpu_idx, uint64_t vaddr) {return 0; }
