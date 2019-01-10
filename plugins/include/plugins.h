@@ -2,7 +2,7 @@
 #define PLUGINS_INTERFACE_H
 
 #include <stdbool.h>
-
+#include "/home/farzon/Projects/qsim_modified/qemu/include/qemu/typedefs.h"
 /* Plugin interface */
 
 bool plugin_init(const char *args);
