@@ -98,6 +98,8 @@ void helper_into(CPUX86State *env, int next_eip_addend)
     }
 }
 
+bool enable_instrumentation = false;
+
 void helper_cpuid(CPUX86State *env)
 {
     uint32_t eax, ebx, ecx, edx;
@@ -110,6 +112,12 @@ void helper_cpuid(CPUX86State *env)
     env->regs[R_EBX] = ebx;
     env->regs[R_ECX] = ecx;
     env->regs[R_EDX] = edx;
+    if (eax == 0xaaaaaaaa) {
+      printf("Enabling instrumentation\n");
+       enable_instrumentation = true;
+    } else if (eax == 0xfa11dead) {
+      enable_instrumentation = false;
+    }
 }
 
 #if defined(CONFIG_USER_ONLY)

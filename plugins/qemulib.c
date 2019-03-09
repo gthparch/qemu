@@ -43,7 +43,7 @@ int qemulib_read_register(void *cpu, uint8_t *mem_buf, int reg)
 int qemulib_write_register(void* cpu, uint8_t *mem_buf, int reg) {
     CPUClass *cc = CPU_GET_CLASS(cpu);
     if (reg < cc->gdb_num_core_regs) {
-        return gdb_write_register(cpu, mem_buf, reg);
+        return cc->gdb_write_register(cpu, mem_buf, reg);
     }
 
     return 0;
@@ -61,7 +61,7 @@ CPUState* getCPUStateFromId(int id) {
     int currId;
 
     CPU_FOREACH(cpu) {
-        currId = cpu_index(cpu);
+        currId = cpu->cpu_index;
         if(currId == id) {
             return cpu;
         }

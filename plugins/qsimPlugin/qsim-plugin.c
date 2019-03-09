@@ -6,10 +6,13 @@
 // set_atomic_cb, set_inst_cb, set_int_cb, run, run_cpu
 // set_mem_cb, set_magic_cb, set_io_cb, set_reg_cb,
 // set_trans_cb, set_gen_cbs, set_sys_cbs, qemu_init, 
-#include "../../../qsim-func.h"
+#include "qsim-func.h"
 
 // need for qsim_ucontext_t used in run and run_cpu
-#include "../../../qsim-context.h"
+#include "qsim-context.h"
+
+extern bool enable_instrumentation;
+
 
 // remaining set of function definitions needed
 int interrupt(uint8_t vec);
@@ -22,12 +25,13 @@ uint64_t get_reg(int cpu_idx, int r) {
 }
 void set_reg(int cpu_idx, int r, uint64_t val) {
     void* cpu = getCPUStateFromId(cpu_idx);
-    qemulib_write_register(cpu, &val, r);
+    qemulib_write_register(cpu, (uint8_t *)&val, r);
 }
 
 uint8_t mem_rd(uint64_t paddr) {
     void *cpu = NULL;
     qemulib_translate_memory(cpu, paddr); 
+    return 0; // TODO
 }
 
 void mem_wr(uint64_t paddr, uint8_t val) {
@@ -40,7 +44,6 @@ void mem_wr_virt(int cpu_idx, uint64_t vaddr, uint8_t val);
 void qsim_savevm_state(const char *filename) {}
 int qsim_loadvm_state(const char *filename) {return 0; }
 
-interupt_cb_t qsim_interupt_cb = NULL;
 atomic_cb_t qsim_atomic_cb = NULL;
 magic_cb_t  qsim_magic_cb  = NULL;
 int_cb_t    qsim_int_cb    = NULL;
@@ -70,7 +73,6 @@ void set_magic_cb (magic_cb_t  cb) { qsim_magic_cb  = cb; }
 void set_io_cb    (io_cb_t     cb) { qsim_io_cb     = cb; }
 void set_reg_cb   (reg_cb_t    cb) { qsim_reg_cb    = cb; }
 void set_trans_cb (trans_cb_t cb) { qsim_trans_cb = cb; }
-void set_interupt_cb(interupt_cb_t cb) { qsim_interupt_cb = cb;}
 
 
 void set_gen_cbs (bool state)
@@ -96,8 +98,8 @@ uint64_t run(uint64_t insts)
 
     qsim_icount = insts;
 
-    swapcontext(&main_context, &qemu_context);
-    checkcontext();
+    //swapcontext(&main_context, &qemu_context);
+    //checkcontext();
 
     return insts - qsim_icount;
 }
@@ -108,8 +110,8 @@ uint64_t run_cpu(int cpu_id, uint64_t insts)
 
     qsim_icount = insts;
     qsim_id = cpu_id;
-    swapcontext(&main_context, &qemu_context);
-    checkcontext();
+    //swapcontext(&main_context, &qemu_context);
+    //checkcontext();
 
     return insts - qsim_icount;
 }
@@ -137,8 +139,6 @@ bool plugin_init(const char *args)
     set_mem_cb(test_mem_cb); //test we did not break
     return true;
 }
-
-extern bool enable_instrumentation;
 
 bool plugin_needs_before_insn(uint64_t pc, void *cpu)
 {
