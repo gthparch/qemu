@@ -149,10 +149,22 @@ void helper_before_insn(target_ulong pc, void *cpu)
     }
 }
 
-void helper_mem_callback(void *cpu, uint64_t addr,
+void helper_mem_callback(void *cpu, 
+#if TARGET_LONG_BITS == 64
+                        uint64_t addr,
+#else
+                        uint32_t addr,
+#endif
+
                          uint32_t size, uint32_t type)
 {
+#if TARGET_LONG_BITS == 64
     fprintf(stderr, "addr: %lx, size: %d, type: %d\n", addr, size, type);
+#else
+    fprintf(stderr, "addr: %d, size: %d, type: %d\n", addr, size, type);
+#endif
+
+    
     QemuPluginInfo *info;
     QLIST_FOREACH(info, &qemu_plugins, next) {
         info->after_mem(cpu, addr, size, type);
