@@ -1,4 +1,4 @@
-CXXFLAGS ?= -g -O2 -std=c++0x -Wall -I../qsimCore -Wl,--no-as-needed
+CXXFLAGS ?= -g -O2 -fno-PIE -fPIC   -std=c++0x -Wall -I../../include  -I../include -I../qsimCore -Wl,--no-as-needed
 
 LDLIBS ?= -pthread -ldl -lrt
 
@@ -12,9 +12,12 @@ qsim-load.o: ../qsimCore/qsim-load.cpp ../qsimCore/qsim-load.h ../qsimCore/qsim.
 qsim-prof.o: ../qsimCore/qsim-prof.cpp ../qsimCore/qsim-prof.h ../qsimCore/qsim.h
 	$(CXX) $(CXXFLAGS) -I./ -fPIC -c ../qsimCore/qsim-prof.cpp
 
-qsim.o: qsim-load.o qsim-prof.o ../qsimCore/qsim.cpp ../qsimCore/qsim.h ../qsimCore/qsim-vm.h \
+qemuplugin.o : ../plugins.c  ../qemulib.c ../helper.h
+	$(CXX) $(CXXFLAGS) -fPIC -ldl -lrt -c ../plugins.c
+
+qsim.o: qemuplugin.o qsim-load.o qsim-prof.o ../qsimCore/qsim.cpp ../qsimCore/qsim.h ../qsimCore/qsim-vm.h \
             ../qsimCore/qsim-regs.h ../qsimCore/qsim-x86-regs.h ../qsimCore/qsim-arm64-regs.h
-	$(CXX) $(CXXFLAGS) -fPIC -ldl -lrt -c ../qsimCore/qsim.cpp qsim-prof.o qsim-load.o
+	$(CXX) $(CXXFLAGS) -fPIC -ldl -lrt -c ../qsimCore/qsim.cpp qemuplugin.o qsim-prof.o qsim-load.o
 
 
 cs_disas.o : cs_disas.cpp cs_disas.h ../qsimCore/capstone.h

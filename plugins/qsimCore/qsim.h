@@ -18,7 +18,15 @@
 
 #include "qsim-vm.h"
 #include "qsim-regs.h"
-//#include "mgzd.h"
+
+// need for getCPUStateFromId, qemulib_write_register, 
+// qemulib_read_register, qemulib_translate_memory, qemulib_write_memory
+#include "plugins.h"
+
+// need for qsim_ucontext_t used in run and run_cpu
+#include "qsim-context.h"
+
+extern bool enable_instrumentation;
 
 namespace Qsim {
   struct QueueItem {
@@ -90,8 +98,8 @@ namespace Qsim {
     virtual ~Cpu();
 
     // Run for n instructions.
-    virtual uint64_t run(unsigned n) = 0;
-    virtual uint64_t run(int cpu, unsigned n) = 0;
+    virtual uint64_t run(uint64_t n) = 0;
+    virtual uint64_t run(int cpu, uint64_t n) = 0;
 
     // Trigger an interrupt with vector v.
     virtual int interrupt(uint8_t v) = 0;
@@ -108,50 +116,51 @@ namespace Qsim {
   class QemuCpu : public Cpu {
   private:
     std::string cpu_type;
-
-    // The qemu library object                                                 
-    //Mgzd::lib_t qemu_lib; //not needed anymore
-
-    // Function pointers into the qemu library                                 
-    void     (*qemu_init)(const char** argv);
-    uint64_t (*qemu_run)(uint64_t n);
-    uint64_t (*qemu_run_cpu)(int c, uint64_t n);
-    int      (*qemu_interrupt)(uint8_t vec);
-
-    void (*qemu_set_atomic_cb)(atomic_cb_t);
-    void (*qemu_set_inst_cb)  (inst_cb_t  );
-    void (*qemu_set_int_cb)   (int_cb_t   );
-    void (*qemu_set_mem_cb)   (mem_cb_t   );
-    void (*qemu_set_magic_cb) (magic_cb_t );
-    void (*qemu_set_io_cb)    (io_cb_t    );
-    void (*qemu_set_reg_cb)   (reg_cb_t   );
-    void (*qemu_set_trans_cb) (trans_cb_t );
-    void (*qemu_set_gen_cbs)  (bool state);
-    void (*qemu_set_sys_cbs)  (bool state);
-
-    uint64_t (*qemu_get_reg) (int c, int r);
-    void     (*qemu_set_reg) (int c, int r, uint64_t val );
-
-    uint8_t  (*qemu_mem_rd)  (uint64_t paddr);
-    void     (*qemu_mem_wr)  (uint64_t paddr, uint8_t data);
-    uint8_t  (*qemu_mem_rd_virt) (int c, uint64_t vaddr);
-    void     (*qemu_mem_wr_virt) (int c, uint64_t vaddr, uint8_t data);
-
-    int      (*qsim_savevm_state) (const char *filename);
-    int      (*qsim_loadvm_state) (const char *filename);
-
-    //void load_and_grab_pointers(const char *libfile);
+    atomic_cb_t qsim_atomic_cb = NULL;
+    magic_cb_t  qsim_magic_cb  = NULL;
+    int_cb_t    qsim_int_cb    = NULL;
+    mem_cb_t    qsim_mem_cb    = NULL;
+    inst_cb_t   qsim_inst_cb   = NULL;
+    io_cb_t     qsim_io_cb     = NULL;
+    reg_cb_t    qsim_reg_cb    = NULL;
+    trans_cb_t qsim_trans_cb   = NULL;
+    int qsim_gen_callbacks = 0;
+    bool qsim_sys_callbacks = false;
+    qsim_ucontext_t main_context;
+    qsim_ucontext_t qemu_context;
+    int qsim_id;
+    // -1: not yet called
+    //  0: Total system run mode
+    //  1: Per cpu run mode
+    int run_mode = -1;
+    int64_t     qsim_icount   = 10000000;
 
     // Load Linux from bzImage into QEMU RAM
-    void load_linux(const char* bzImage);
+    void load_linux(const char* bzImage); //Delete this
 
   public:
     QemuCpu(int id, const char* kernel, unsigned ram_mb = 1024, int n_cpus = 1, const std::string& cpu_type = "x86", qsim_mode mode = QSIM_HEADLESS);
     QemuCpu(const char** args, const std::string& type);
+    QemuCpu() {}
     virtual ~QemuCpu();
  
-    uint64_t run(unsigned n) { return qemu_run(n); }
-    uint64_t run(int c, unsigned n) { return qemu_run_cpu(c, n); }
+    virtual uint64_t run(uint64_t insts) { 
+        run_mode = 0;
+        qsim_icount = insts;
+
+        //swapcontext(&main_context, &qemu_context);
+        //checkcontext();
+        return insts - qsim_icount;
+    }
+
+    virtual uint64_t run(int cpu_id, uint64_t insts) { 
+      run_mode = 1;
+      qsim_icount = insts;
+      qsim_id = cpu_id;
+      //swapcontext(&main_context, &qemu_context);
+      //checkcontext();
+      return insts - qsim_icount;
+    }
 
     std::string getCpuType() { return cpu_type; }
     void setCpuType(std::string arch) { cpu_type = arch; }
@@ -160,75 +169,132 @@ namespace Qsim {
     void save_state(const char *file);
 
     virtual void set_atomic_cb(atomic_cb_t cb) { 
-      qemu_set_atomic_cb(cb); 
+      qsim_atomic_cb = cb; 
     }
 
     virtual void set_inst_cb  (inst_cb_t  cb) { 
-      qemu_set_inst_cb  (cb); 
+      qsim_inst_cb = cb; 
     }
 
     virtual void set_mem_cb   (mem_cb_t   cb) { 
-      qemu_set_mem_cb   (cb);
+      qsim_mem_cb = cb;
     }
     virtual void set_int_cb   (int_cb_t   cb) { 
-      qemu_set_int_cb   (cb);
+      qsim_int_cb = cb;
     }
 
     virtual void set_magic_cb (magic_cb_t cb) { 
-      qemu_set_magic_cb (cb);
+      qsim_magic_cb = cb;
     }
 
     virtual void set_io_cb    (io_cb_t    cb) { 
-      qemu_set_io_cb    (cb);
+      qsim_io_cb = cb;
     }
 
     virtual void set_reg_cb(reg_cb_t cb) {
-      qemu_set_reg_cb(cb);
+      qsim_reg_cb  = cb;
     }
 
     virtual void set_trans_cb(trans_cb_t cb) {
-      qemu_set_trans_cb(cb);
+      qsim_trans_cb = cb;
+    }
+
+    bool plugin_needs_before_insn(uint64_t pc, void *cpu) {
+      if (enable_instrumentation) {
+          return true;
+      }
+      return false;
+    }
+
+    void plugin_before_insn(uint64_t pc, void *cpu){
+      uint8_t inst_buffer[4];
+
+      qemulib_read_memory(cpu, pc, inst_buffer, sizeof(uint32_t));
+      qsim_inst_cb(qemulib_get_cpuid(cpu), pc, qemulib_translate_memory(cpu, pc),
+            sizeof(uint32_t), inst_buffer, QSIM_INST_NULL);
+    }
+
+    void plugin_after_mem(void *cpu, uint64_t v, int size, int type) {
+      qsim_mem_cb(qemulib_get_cpuid(cpu), v,
+        qemulib_translate_memory(cpu, v), size, type);
     }
 
     virtual void set_gen_cbs(bool state) {
-      qemu_set_gen_cbs(state);
+      // Mark all generated TBs as stale so that new TBs are generated
+      if (state) {
+          qsim_gen_callbacks++;
+      } else {
+          qsim_gen_callbacks--;
+      }
     }
 
     virtual void set_sys_cbs(bool state) {
-      qemu_set_sys_cbs(state);
+      qsim_sys_callbacks = state;
     }
 
     // Read memory at given physical address
-    uint8_t mem_rd(uint64_t pa) {
-      return qemu_mem_rd(pa);
+    uint8_t mem_rd(uint64_t paddr) {
+      void *cpu = NULL;
+      qemulib_translate_memory(cpu, paddr); 
+      return 0; // TODO
     }
 
-    void    mem_wr(uint64_t pa, uint8_t val) {
-      qemu_mem_wr(pa, val);
+    void    mem_wr(uint64_t paddr, uint8_t val) {
+      void *cpu = NULL;
+      qemulib_write_memory(cpu, paddr, &val,sizeof(val));
     }
 
-    uint8_t mem_rd_virt(int c, uint64_t va) { return qemu_mem_rd_virt(c, va); }
-    void    mem_wr_virt(int c, uint64_t va, uint8_t val)
+    uint8_t mem_rd_virt(int c, uint64_t va) { 
+      return 0; //TODO 
+    }
+
+    void  mem_wr_virt(int c, uint64_t va, uint8_t val)
     {
-      qemu_mem_wr_virt(c, va, val);
+       return; // TODO
     }
 
     virtual int  interrupt    (uint8_t   vec)   { 
-      int r;
-      r = qemu_interrupt(vec);
+      int r =0;
+      //TODO
       return r;
     }
 
-    virtual uint64_t get_reg (int c, int r)      {
-      uint64_t v; 
-      v = qemu_get_reg(c, r);
-      return v;
+    virtual uint64_t get_reg (int cpu_idx, int r)      {
+       void * cpu = getCPUStateFromId(cpu_idx);
+      uint32_t reg;
+      qemulib_read_register(cpu, (uint8_t*)&reg, r);
+      return reg;
     }
 
-    virtual void     set_reg (int c, int r, uint64_t v) {
-      qemu_set_reg(c, r, v);
+    virtual void set_reg (int cpu_idx, int r, uint64_t val) {
+      void* cpu = getCPUStateFromId(cpu_idx);
+      qemulib_write_register(cpu, (uint8_t *)&val, r);
     }
   };
+
+  QemuCpu* currCpu = nullptr;
+
+  void setCurrCpu(Qsim::QemuCpu* cpu) {
+    currCpu = cpu;
+  }
+  
+  bool plugin_needs_before_insn(uint64_t pc, void *cpu) {
+    if(currCpu != nullptr) {
+      currCpu->plugin_needs_before_insn(pc,cpu);
+    }
+  }
+  
+  void plugin_before_insn(uint64_t pc, void *cpu) {
+    if(currCpu != nullptr) {
+      currCpu->plugin_before_insn(pc,cpu);
+    }
+  }
+  
+  void plugin_after_mem(void *cpu, uint64_t v, int size, int type) {
+    if(currCpu != nullptr) {
+      currCpu->plugin_after_mem(cpu,v,size,type);
+    }
+  }
 
 
   // Coherence domain singleton-- encapsulates a set of CPUs and the needed 
