@@ -135,11 +135,8 @@ namespace Qsim {
     int run_mode = -1;
     int64_t     qsim_icount   = 10000000;
 
-    // Load Linux from bzImage into QEMU RAM
-    void load_linux(const char* bzImage); //Delete this
-
   public:
-    QemuCpu(int id, const char* kernel, unsigned ram_mb = 1024, int n_cpus = 1, const std::string& cpu_type = "x86", qsim_mode mode = QSIM_HEADLESS);
+    QemuCpu(int id, unsigned ram_mb = 1024, int n_cpus = 1, const std::string& cpu_type = "x86", qsim_mode mode = QSIM_HEADLESS);
     QemuCpu(const char** args, const std::string& type);
     QemuCpu() {}
     virtual ~QemuCpu();
@@ -311,15 +308,11 @@ namespace Qsim {
     enum cpu_prot { PROT_KERN, PROT_USER };
 
     // Create a OSDomain with n CPUs, booting the kernel at the given path
-    OSDomain(uint16_t n, std::string kernel_path, const std::string& cpu_type, qsim_mode mode = QSIM_HEADLESS, unsigned ram_mb = 1024);
+    OSDomain(uint16_t n, const std::string& cpu_type, qsim_mode mode = QSIM_HEADLESS, unsigned ram_mb = 1024);
 
-    // Create a new OSDomain from a state file.
-    OSDomain(const char *filename);
-    OSDomain(int n_cpus, const char *filename);
-
-    // Save a snapshot of the OSDomain state
-    void save_state(std::ostream &outfile);
-    void save_state(const char* filename);
+    
+    OSDomain();
+    OSDomain(int n_cpus);
 
     // Get the current mode, protection ring, or Linux task ID for CPU i
     int           get_tid (uint16_t i);
@@ -734,7 +727,7 @@ namespace Qsim {
     int bench_pid;
     void assign_id();
 
-    void init(const char* filename);
+    void init();
 
     std::string linebuf;
     uint16_t              n_cpus ;       // Number of CPUs

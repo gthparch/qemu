@@ -110,57 +110,24 @@ const char *TraceWriter::itype_str[] = {
   "QSIM_INST_FPDIV"
 };
 
-int main(int argc, char** argv) {
+bool plugin_init(const char *args) {
   using std::istringstream;
   using std::ofstream;
-
   ofstream *outfile(NULL);
-
   unsigned n_cpus = 1;
-
-  //std::string qsim_prefix(getenv("QSIM_PREFIX"));
-
-  // Read number of CPUs as a parameter. 
-  if (argc >= 2) {
-    istringstream s(argv[1]);
-    s >> n_cpus;
-  } else {
-    fprintf(stderr, "Usage:\n INTERACTIVE: %s <num_cpus>\n"
-            " HEADLESS: %s <num_cpus> -state <state_file> -bench <benchmark.tar> -out <log_file>\n",
-            argv[0], argv[0]);
-    exit(0);
-  }
-
-  // Read trace file as a parameter.
-  if (argc >= 7) {
-    outfile = new ofstream(argv[7]);
-  } else {
-    outfile = new ofstream("trace.log");
-  }
-
-  OSDomain *osd_p(NULL);
-
-  if (argc >= 4) {
-    // Create new OSDomain from saved state.
-    osd_p = new OSDomain(n_cpus, argv[3]);
-  } else {
-    //osd_p = new OSDomain(n_cpus, qsim_prefix + "/images/arm64_images/vmlinuz", "a64", QSIM_INTERACTIVE);
-  }
-  OSDomain &osd(*osd_p);
+  
+  OSDomain osd(n_cpus);
+   outfile = new ofstream("trace.log");
 
   // Attach a TraceWriter if a trace file is given.
-  TraceWriter tw(osd, outfile?*outfile:std::cout);
-
-  // If this OSDomain was created from a saved state, the app start callback was
-  // received prior to the state being saved.
-  if (argc >= 6) {
-    //Qsim::load_file(osd, argv[5]); // no more load file
-    tw.app_start_cb(0);
-  }
-
-  osd.connect_console(std::cout);
-
+  TraceWriter tw(osd, outfile);
   tw.app_start_cb(0);
+  osd.connect_console(std::cout);
+  tw.app_start_cb(0);
+  
+
+  // NOTE: everythng from here to delete outfile needs to be in a different function
+  
   // The main loop: run until 'finished' is true.
   unsigned long inst_per_iter = 1000000000, inst_run;
   inst_run = inst_per_iter;
@@ -173,7 +140,5 @@ int main(int argc, char** argv) {
   if (outfile) { outfile->close(); }
   delete outfile;
 
-  delete osd_p;
-
-  return 0;
+  return true;
 }
