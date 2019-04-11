@@ -269,30 +269,8 @@ namespace Qsim {
     }
   };
 
-  QemuCpu* currCpu = nullptr;
-
-  void setCurrCpu(Qsim::QemuCpu* cpu) {
-    currCpu = cpu;
-  }
-  
-  bool plugin_needs_before_insn(uint64_t pc, void *cpu) {
-    if(currCpu != nullptr) {
-      currCpu->plugin_needs_before_insn(pc,cpu);
-    }
-  }
-  
-  void plugin_before_insn(uint64_t pc, void *cpu) {
-    if(currCpu != nullptr) {
-      currCpu->plugin_before_insn(pc,cpu);
-    }
-  }
-  
-  void plugin_after_mem(void *cpu, uint64_t v, int size, int type) {
-    if(currCpu != nullptr) {
-      currCpu->plugin_after_mem(cpu,v,size,type);
-    }
-  }
-
+  extern QemuCpu* currCpu;
+  void setCurrCpu(Qsim::QemuCpu* cpu);
 
   // Coherence domain singleton-- encapsulates a set of CPUs and the needed 
   // virtual hardware (of which there is little). Limit of one per process to
@@ -814,5 +792,23 @@ namespace Qsim {
   };
 
 };
+
+bool plugin_needs_before_insn(uint64_t pc, void *cpu) {
+    if(Qsim::currCpu != nullptr) {
+      Qsim::currCpu->plugin_needs_before_insn(pc,cpu);
+    }
+  }
+  
+  void plugin_before_insn(uint64_t pc, void *cpu) {
+    if(Qsim::currCpu != nullptr) {
+      Qsim::currCpu->plugin_before_insn(pc,cpu);
+    }
+  }
+  
+  void plugin_after_mem(void *cpu, uint64_t v, int size, int type) {
+    if(Qsim::currCpu != nullptr) {
+      Qsim::currCpu->plugin_after_mem(cpu,v,size,type);
+    }
+  }
 
 #endif

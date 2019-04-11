@@ -9,7 +9,7 @@
 #ifndef __QSIM_LOAD_H
 #define __QSIM_LOAD_H
 
-#include <qsim.h>
+#include "qsim.h"
 
 namespace Qsim {
   void load_file(Qsim::OSDomain &osd, const char *filename);

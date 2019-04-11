@@ -62,6 +62,12 @@ static inline void read_data_chunk(FILE*    f,
     fprintf(stderr, "Read failed\n");
 }
 
+Qsim::QemuCpu* Qsim::currCpu = nullptr;
+
+void Qsim::setCurrCpu(Qsim::QemuCpu* cpu) {
+  Qsim::currCpu = cpu;
+}
+
 // Put the vtable for Cpu here.
 Qsim::Cpu::~Cpu() {}
 

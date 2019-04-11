@@ -8,7 +8,7 @@
 \*****************************************************************************/
 #include <fstream>
 
-#include <qsim.h>
+#include "qsim.h"
 
 #include "qsim-load.h"
 #include <iostream>

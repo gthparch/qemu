@@ -159,9 +159,9 @@ void helper_mem_callback(void *cpu,
                          uint32_t size, uint32_t type)
 {
 #if TARGET_LONG_BITS == 64
-    fprintf(stderr, "addr: %lx, size: %d, type: %d\n", addr, size, type);
+    //fprintf(stderr, "addr: %lx, size: %d, type: %d\n", addr, size, type);
 #else
-    fprintf(stderr, "addr: %d, size: %d, type: %d\n", addr, size, type);
+    //fprintf(stderr, "addr: %d, size: %d, type: %d\n", addr, size, type);
 #endif
 
     
