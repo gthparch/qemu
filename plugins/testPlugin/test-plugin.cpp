@@ -28,15 +28,21 @@ void test_mem_cb(int c, uint64_t v, uint64_t p, uint8_t size, int w)
 
 bool plugin_init(const char *args)
 {
+    FILE *debugFile = fopen ("debug.log","w");
+    fprintf(stderr, "executing plugin_init");
     FILE *insFile = fopen ("inst.log","w");
     FILE *memFile = fopen ("mem.log","w");
     fprintf (insFile, "");
     fprintf (memFile, "");
     fclose(insFile);
     fclose(memFile);
+    fprintf(debugFile, "init inst log and mem log");
+    Qsim::setCurrCpu(&cpu);
+    fprintf(debugFile, "set current cpu");
     cpu.set_inst_cb(test_inst_cb); //test we did not break
     cpu.set_mem_cb(test_mem_cb); //test we did not break
-    Qsim::setCurrCpu(&cpu);
+    fprintf(debugFile, "set callbacks");
+    fclose(debugFile);
     return true;
 }
 

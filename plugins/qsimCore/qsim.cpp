@@ -68,6 +68,24 @@ void Qsim::setCurrCpu(Qsim::QemuCpu* cpu) {
   Qsim::currCpu = cpu;
 }
 
+bool plugin_needs_before_insn(uint64_t pc, void *cpu) {
+    if(Qsim::currCpu != nullptr) {
+      Qsim::currCpu->plugin_needs_before_insn(pc,cpu);
+    }
+  }
+  
+  void plugin_before_insn(uint64_t pc, void *cpu) {
+    if(Qsim::currCpu != nullptr) {
+      Qsim::currCpu->plugin_before_insn(pc,cpu);
+    }
+  }
+  
+  void plugin_after_mem(void *cpu, uint64_t v, int size, int type) {
+    if(Qsim::currCpu != nullptr) {
+      Qsim::currCpu->plugin_after_mem(cpu,v,size,type);
+    }
+  }
+
 // Put the vtable for Cpu here.
 Qsim::Cpu::~Cpu() {}
 

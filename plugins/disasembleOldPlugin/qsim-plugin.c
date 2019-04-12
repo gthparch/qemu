@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "plugins.h"
+#include <capstone/capstone.h>
+#include "cs_disas.h"
 
 // get export definitions for:
 // set_atomic_cb, set_inst_cb, set_int_cb, run, run_cpu
@@ -12,7 +14,7 @@
 #include "qsim-context.h"
 
 extern bool enable_instrumentation;
-
+cs_disas dis;
 
 // remaining set of function definitions needed
 int interrupt(uint8_t vec);
@@ -116,25 +118,37 @@ uint64_t run_cpu(int cpu_id, uint64_t insts)
     return insts - qsim_icount;
 }
 
+
+
 void test_inst_cb(int c, uint64_t v, uint64_t p, uint8_t l,
              const uint8_t *b,  enum inst_type type)
 {
     FILE *insFile = fopen ("inst.log","a");
-    //fprintf(stderr, "executing instruction at pc: %lx\n", v);
-    fprintf(insFile, "executing instruction at pc: %lx\n", v);
+    cs_insn *insn = NULL;
+    int count = decode(&dis, (unsigned char *)b, l, insn);
+    fprintf(stderr, "instruction: (%p, %hhx) type %i",b,b,type);
+    //fprintf(stderr,"insn count: %i",count);
+    //fprintf(stderr,"insn ptr: %p",insn);
+    if(!insn) {
+        fclose(insFile);
+        return;
+    }
+    if(insn) {
+        fprintf(stderr,"insn[0] ptr: %p",*insn);
+        fprintf(stderr,"insn[0].mnemonic ptr: %p",insn->mnemonic);
+        if(insn->mnemonic) {
+            fprintf(stderr,"insn->mnemonic: %s",insn->mnemonic);
+        }
+        fprintf(stderr,"insn[0].op_str ptr: %p",insn->op_str);
+        if(insn->op_str) {
+            fprintf(stderr,"insn[0].op_str: %s",insn->op_str);
+        }
+    }
+    //std::cerr << "0x" << std::hex << v << std::dec << " " << insn[0].mnemonic  << " " << insn[0].op_str << std::endl;
+    //fprintf(insFile, "0x%lx\n %s %s", v, insn[0].mnemonic, insn[0].op_str);
+    //fprintf(stderr, "0x%lx\n %s %s", v, insn[0].mnemonic, insn[0].op_str);
+    free_insn(insn, count);
     fclose(insFile);
-    return;
-}
-
-void test_mem_cb(int c, uint64_t v, uint64_t p, int size, int w)
-{
-     FILE *memFile = fopen ("mem.log","a");
-    //fprintf(stderr, "core: %d, vaddr: %lx, paddr: %lx, \
-    //                 size: %d, write: %d\n", c, v, p, size, w);
-
-    fprintf(memFile, "core: %d, vaddr: %lx, paddr: %lx, \
-                     size: %d, write: %d\n", c, v, p, size, w);
-    fclose(memFile);
     return;
 }
 
@@ -142,14 +156,12 @@ void test_mem_cb(int c, uint64_t v, uint64_t p, int size, int w)
 bool plugin_init(const char *args)
 {
     FILE *insFile = fopen ("inst.log","w");
-    FILE *memFile = fopen ("mem.log","w");
     fprintf (insFile, "");
-    fprintf (memFile, "");
     fclose(insFile);
-    fclose(memFile);
+
+    cs_disasInit(&dis, CS_ARCH_ARM64, CS_MODE_ARM);
 
     set_inst_cb(test_inst_cb); //test we did not break
-    set_mem_cb(test_mem_cb); //test we did not break
     return true;
 }
 
@@ -167,14 +179,19 @@ void plugin_before_insn(uint64_t pc, void *cpu)
     uint8_t inst_buffer[4];
 
     qemulib_read_memory(cpu, pc, inst_buffer, sizeof(uint32_t));
+    
+    if(qsim_inst_cb != NULL) {
     qsim_inst_cb(qemulib_get_cpuid(cpu), pc, qemulib_translate_memory(cpu, pc),
             sizeof(uint32_t), inst_buffer, QSIM_INST_NULL);
+    }
 }
 
 void plugin_after_mem(void *cpu, uint64_t v, int size, int type)
 {
-    qsim_mem_cb(qemulib_get_cpuid(cpu), v,
-           qemulib_translate_memory(cpu, v), size, type);
+    if(qsim_mem_cb != NULL) {
+    	qsim_mem_cb(qemulib_get_cpuid(cpu), v, 
+		qemulib_translate_memory(cpu, v), size, type);
+    }
 }
 
 

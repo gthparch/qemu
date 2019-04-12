@@ -91,8 +91,10 @@ void qemu_plugin_load(const char *filename, const char *args)
         G_MODULE_BIND_LAZY | G_MODULE_BIND_LOCAL);
     if (!g_module) {
         error_report("can't load plugin '%s'", filename);
+        fprintf(stderr,"error: %s",g_module_error ());
         return;
     }
+    fprintf(stderr, "plugin '%s' Loaded!", filename);
     info = g_new0(QemuPluginInfo, 1);
     info->filename = g_strdup(filename);
     info->g_module = g_module;
@@ -100,15 +102,38 @@ void qemu_plugin_load(const char *filename, const char *args)
         info->args = g_strdup(args);
     }
 
-    g_module_symbol(g_module, "plugin_init", (gpointer*)&info->init);
+    if (!g_module_symbol(g_module, "plugin_init", (gpointer*)&info->init) ) {
+        fprintf(stderr, "plugin_init failed to load is: 0x%p !", info->init);
+        fprintf(stderr, "plugin_init error: %s",g_module_error ());
+        g_module_close (g_module);
+        return;
 
+    }
     /* Get the instrumentation callbacks */
-    g_module_symbol(g_module, "plugin_needs_before_insn",
-        (gpointer*)&info->needs_before_insn);
-    g_module_symbol(g_module, "plugin_before_insn",
-        (gpointer*)&info->before_insn);
-    g_module_symbol(g_module, "plugin_after_mem",
-        (gpointer*)&info->after_mem);
+    if (! g_module_symbol(g_module, "plugin_needs_before_insn",
+        (gpointer*)&info->needs_before_insn) ) {
+            fprintf(stderr, "needs_before_insn is: 0x%p !", info->needs_before_insn);
+            fprintf(stderr, "needs_before_insn error: %s",g_module_error ());
+            g_module_close (g_module);
+            return;
+    }
+    if (! g_module_symbol(g_module, "plugin_before_insn",
+        (gpointer*)&info->before_insn) ) {
+            fprintf(stderr, "before_insn is: 0x%p !", info->before_insn);
+            fprintf(stderr, "before_insn error: %s",g_module_error ());
+            g_module_close (g_module);
+            return;
+        }
+
+    if (! g_module_symbol(g_module, "plugin_after_mem",
+        (gpointer*)&info->after_mem) ) {
+
+            fprintf(stderr, "after_mem is: 0x%p !", info->after_mem);
+            fprintf(stderr, "after_mem error: %s",g_module_error ());
+            g_module_close (g_module);
+            return;
+        }
+
 #endif
     QLIST_INSERT_HEAD(&qemu_plugins, info, next);
 
@@ -167,7 +192,9 @@ void helper_mem_callback(void *cpu,
     
     QemuPluginInfo *info;
     QLIST_FOREACH(info, &qemu_plugins, next) {
-        info->after_mem(cpu, addr, size, type);
+        if( info->after_mem) {
+            info->after_mem(cpu, addr, size, type);
+        }
     }
     return;
 }
@@ -178,6 +205,8 @@ void qemu_plugins_init(void)
     QLIST_FOREACH(info, &qemu_plugins, next) {
         if (info->init) {
             info->init(info->args);
+        } else {
+            fprintf(stderr, "plugin failed to load");
         }
     }
 

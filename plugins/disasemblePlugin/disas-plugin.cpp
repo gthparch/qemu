@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <iostream>
 
-extern Qsim::QemuCpu cpu;
+Qsim::QemuCpu cpu;
 
 cs_disas dis(CS_ARCH_ARM64, CS_MODE_ARM);
 
@@ -24,7 +24,7 @@ void test_inst_cb(int c, uint64_t v, uint64_t p, uint8_t l,
 bool plugin_init(const char *args)
 {
     FILE *insFile = fopen ("inst.log","w");
-    fprintf (insFile, "");
+    //fprintf (insFile, "");
     fclose(insFile);
     cpu.set_inst_cb(test_inst_cb); //test we did not break
     Qsim::setCurrCpu(&cpu);
