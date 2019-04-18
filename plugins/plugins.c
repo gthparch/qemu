@@ -74,11 +74,11 @@ void qemu_plugin_load(const char *filename, const char *args)
     if (args) {
         info->args = g_strdup(args);
     }
-    ((gpointer*)&info->init) = dlsym(g_module,"plugin_init");
+    &info->init = (PluginInitFunc*)dlsym(g_module,"plugin_init");
     /* Get the instrumentation callbacks */
-    ((gpointer*)&info->needs_before_insn) = dlsym(g_module, "plugin_needs_before_insn");
-    ((gpointer*)&info->before_insn) = dlsym(g_module, "plugin_before_insn");
-    ((gpointer*)&info->after_mem) = dlsym(g_module, "plugin_after_mem");
+    &info->needs_before_insn = (PluginNeedsBeforeInsnFunc*) dlsym(g_module, "plugin_needs_before_insn");
+    &info->before_insn       = (PluginBeforeInsnFunc*) dlsym(g_module, "plugin_before_insn");
+    &info->after_mem         = (PluginAfterMemFunc*) dlsym(g_module, "plugin_after_mem");
 
 #else
     GModule *g_module;

@@ -1,6 +1,8 @@
 #ifndef PLUGINS_INTERFACE_H
 #define PLUGINS_INTERFACE_H
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include <stdbool.h>
 #include "../../include/qemu/typedefs.h"
 /* Plugin interface */
@@ -25,5 +27,7 @@ uint64_t qemulib_translate_memory(void *cpu, uint64_t addr);
 int qemulib_get_cpuid(void *cpu);
 CPUState* getCPUStateFromId(int id);
 
-
+#ifdef __cplusplus
+};
+#endif
 #endif /* PLUGINS_INTERFACE_H */

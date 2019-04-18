@@ -1,3 +1,11 @@
+
+#ifndef __CS_DISAS__
+#define __CS_DISAS__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <capstone/capstone.h>
 
 struct platform {
@@ -17,3 +25,8 @@ private:
     csh handle;
     struct platform pf;
 };
+#ifdef __cplusplus
+};
+#endif
+#endif //__CS_DISAS__
+
