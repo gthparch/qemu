@@ -1,4 +1,4 @@
-CFLAGS += -I ../qsimCore -I../include -fno-PIE -fPIC -O3
+CFLAGS += -I ../qsimCore -I../include -fno-PIE -fPIC -O3 -std=c++11
 LDFLAGS += -shared
 # TODO: Windows
 UNAME_S := $(shell uname -s)
